@@ -25,13 +25,22 @@ bot.command("admin" , async (ctx)=>{
         ctx.reply("Enter your password please (30 second ⌛)!")
     }
 })
+
+bot.command("set_config" , async (ctx)=>{
+    const chatId = ctx.chat.id;
+    const message = ctx.update.message.text.replace("/set_config ", "");
+    const isAdmin = await client.get(`admin:login:${chatId}`)
+    if (isAdmin){
+        const addNewLicense = await knex("license").insert({license_key: message})
+    }
+})
 bot.on("text", async (ctx) =>{
     const chatId = ctx.update.message.chat.id;
     const message = ctx.update.message.text;
 
-    const hadPassword = client.get(`admin:${chatId}`)
-    if (hadPassword){
-        const validatePassword = knex("admin-passwords").where({ password : message}).first();
+    const hasPassword = await client.get(`admin:${chatId}`)
+    if (hasPassword){
+        const validatePassword = await knex("admin-passwords").where({ password : message}).first();
         if (validatePassword){
             client.set(`admin:login:${chatId}`, "true" , {EX : 604800})
             ctx.reply("You login successfully 🌿")
@@ -39,10 +48,9 @@ bot.on("text", async (ctx) =>{
         else{
             ctx.reply("Your Password is incorrect ! ")
         }
-
-
-
     }
-
 })
+
+
+
 bot.launch()
