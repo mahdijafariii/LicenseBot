@@ -1,6 +1,6 @@
 const dotenv = require('dotenv')
 const env = dotenv.config().parsed
-const { Telegraf } = require('telegraf')
+const { Telegraf, Markup} = require('telegraf')
 const { message } = require('telegraf/filters')
 const knex = require("./config/db");
 const redis = require("redis")
@@ -12,10 +12,24 @@ bot.start(async (ctx) => {
     const hasUser = await knex("users").where({chatId : ctx.chat.id}).first();
     if(!hasUser) await knex("users").insert({chatId : ctx.chat.id ,name : ctx.chat.first_name })
 
-    ctx.reply("Hello welcome to sell license bot 💓")
+    ctx.reply("Hello welcome to sell license bot 💓",
+        Markup.inlineKeyboard([
+            Markup.button.callback("Buy license🪙","shop")
+        ])
+        )
 
 })
 
+bot.action("shop",async (ctx) =>{
+    const getRandomLicense = await knex("license").orderByRaw("RAND()").where({status : "set"}).limit(1).first()
+    if(getRandomLicense){
+        ctx.reply(getRandomLicense.license_key)
+        const updateLicense = await knex("license").where({id : getRandomLicense.id}).update({status : "use"})
+    }
+    else {
+        ctx.reply("licensed finished !!")
+    }
+})
 
 bot.command("admin" , async (ctx)=>{
     const chatId = ctx.chat.id;
@@ -32,6 +46,7 @@ bot.command("set_config" , async (ctx)=>{
     const isAdmin = await client.get(`admin:login:${chatId}`)
     if (isAdmin){
         const addNewLicense = await knex("license").insert({license_key: message})
+        ctx.reply("license added successfully ! 🍂")
     }
 })
 bot.on("text", async (ctx) =>{
